@@ -32,6 +32,15 @@ all server-side logic, database operations, authentication, and API endpoints.
   <li>POST <code>/api/auth/reset-password</code> - Reset user password</li>
 </ul>
 
+
+<h2>User Profile Routes</h2>
+<ul>
+  <li>GET <code>/api/users/</code> - Get Own Profile</li>
+  <li>PUT <code>/api/users</code> - Update Profile</li>
+  <li>POST <code>/api/users/avatar</code> - Upload Image to cloudnary</li>
+ 
+</ul>
+
 <h2>Features</h2>
 <ul>
   <li>User management (CRUD) for Admin</li>
