@@ -80,3 +80,95 @@ export const createTuition = async (req, res) => {
     res.status(500).json({ message: error.message || "Server error" });
   }
 };
+
+
+
+
+
+export const getAvailableTuitions = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    const { page = 1, limit = 10, city, grade, subject, tuitionType } = req.query;
+
+    const skip = (page - 1) * limit;
+
+
+    const cityLower = city?.toLowerCase();
+    const gradeLower = grade?.toLowerCase();
+    const subjectLower = subject?.toLowerCase();
+    const typeLower = tuitionType?.toLowerCase();
+
+
+    const baseMatch = {
+      isActive: true,
+      status: "open",
+    };
+
+    const pipeline = [
+      { $match: baseMatch },
+
+   
+      {
+        $match: {
+          $and: [
+            cityLower
+              ? { $expr: { $eq: [ { $toLower: "$location.city" }, cityLower ] } }
+              : {},
+            gradeLower
+              ? { $expr: { $eq: [ { $toLower: "$grade" }, gradeLower ] } }
+              : {},
+            typeLower
+              ? { $expr: { $eq: [ { $toLower: "$tuitionType" }, typeLower ] } }
+              : {},
+            subjectLower
+              ? { $expr: { $in: [ subjectLower, { $map: { input: "$subjects", as: "sub", in: { $toLower: "$$sub" } } } ] } }
+              : {},
+          ]
+        }
+      },
+
+    
+      {
+        $addFields: {
+          alreadyApplied: userId
+            ? {
+                $in: [
+                  new mongoose.Types.ObjectId(userId),
+                  "$applications.tutor"
+                ]
+              }
+            : false
+        }
+      },
+
+
+      {
+        $project: {
+          statusHistory: 0,
+          applications: 0,
+          scheduleProposals: 0,
+          finalSchedule: 0,
+        }
+      },
+
+      { $skip: skip },
+      { $limit: parseInt(limit) },
+    ];
+
+    const tuitions = await Tuition.aggregate(pipeline);
+    const total = await Tuition.countDocuments(baseMatch);
+
+    return res.status(200).json({
+      success: true,
+      message: "Tuitions fetched successfully",
+      page: Number(page),
+      totalPages: Math.ceil(total / limit),
+      total,
+      tuitions,
+    });
+
+  } catch (error) {
+    console.error("Get Available Tuitions Error:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
