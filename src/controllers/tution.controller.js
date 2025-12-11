@@ -1,4 +1,5 @@
 
+import mongoose from "mongoose";
 import Tuition from "../models/Tutions.js";
 
 
@@ -169,6 +170,104 @@ export const getAvailableTuitions = async (req, res) => {
 
   } catch (error) {
     console.error("Get Available Tuitions Error:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+
+
+
+
+export const getTuitionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid Tuition ID" });
+    }
+
+    const tuition = await Tuition.findById(id)
+      .populate("postedBy", "name email")
+      .populate("guardianPosted", "name email")
+      .populate("applications.tutor", "name email");
+
+    if (!tuition) {
+      return res.status(404).json({ success: false, message: "Tuition not found" });
+    }
+
+    return res.status(200).json(tuition);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+
+export const applyToTuition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?._id;
+
+    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const tuition = await Tuition.findById(id);
+
+    if (!tuition) return res.status(404).json({ success: false, message: "Tuition not found" });
+
+
+    const alreadyApplied = tuition.applications.some(app => app.tutor.toString() === userId.toString());
+    if (alreadyApplied) return res.status(400).json({ success: false, message: "You have already applied" });
+
+    tuition.applications.push({ tutor: userId, proposedRate: tuition.totalFee });
+    await tuition.save();
+
+    res.status(200).json({ success: true, message: "Applied successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+
+export const getRecommendedTuitions = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, city, grade, subject, tuitionType } = req.query;
+
+
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+
+    if (isNaN(pageNumber) || isNaN(limitNumber)) {
+      return res.status(400).json({ success: false, message: "Invalid page or limit" });
+    }
+
+    const filters = { isActive: true, status: "open" };
+
+    if (city) filters["location.city"] = new RegExp(`^${city}$`, "i"); 
+    if (grade) filters.grade = new RegExp(`^${grade}$`, "i");
+    if (subject) filters.subjects = new RegExp(`^${subject}$`, "i");
+    if (tuitionType) filters.tuitionType = new RegExp(`^${tuitionType}$`, "i");
+
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const tuitions = await Tuition.find(filters)
+      .sort({ createdAt: -1 }) 
+      .skip(skip)
+      .limit(limitNumber)
+      .select("-applications -statusHistory -scheduleProposals -finalSchedule");
+
+    const total = await Tuition.countDocuments(filters);
+
+    return res.status(200).json({
+      success: true,
+      message: "Recommended tuitions fetched",
+      page: pageNumber,
+      totalPages: Math.ceil(total / limitNumber),
+      total,
+      tuitions,
+    });
+  } catch (error) {
+    console.error(error);
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
