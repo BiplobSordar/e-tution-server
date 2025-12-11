@@ -6,6 +6,7 @@ import morgan from "morgan";
 import connectDB from "./config/db.js";
 import authRoutes from './routes/authRoute.js';
 import usersRoutes from './routes/user.routes.js';
+import tutionsRoutes from './routes/tution.route.js';
 
 dotenv.config();
 const app = express();
@@ -36,6 +37,7 @@ app.get("/", (req, res) => {
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/tutions", tutionsRoutes);
 
 
 app.use((err, req, res, next) => {

@@ -5,7 +5,7 @@ export const checkAuth = async (req, res, next) => {
   try {
     let token;
 
-    // ✅ Get token from Authorization header
+ 
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer")
@@ -17,10 +17,10 @@ export const checkAuth = async (req, res, next) => {
       return res.status(401).json({ message: "Not authorized, token missing" });
     }
 
-    // ✅ Verify token
+
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
 
-    // ✅ Fetch essential user data only
+
     const user = await User.findById(decoded.id).select(
       "_id uid email role"
     );
@@ -29,7 +29,7 @@ export const checkAuth = async (req, res, next) => {
       return res.status(401).json({ message: "User not found" });
     }
 
-    // ✅ Block inactive users
+
     if (["banned", "deleted", "restricted"].includes(user.status)) {
       return res.status(403).json({ message: "User access restricted" });
     }
