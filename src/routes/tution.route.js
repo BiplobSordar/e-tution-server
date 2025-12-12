@@ -8,9 +8,9 @@ const router = express.Router();
 
 router.post("/create", checkAuth, checkStudent, createTuition);
 router.get("/", getAvailableTuitions);
+router.get("/recommended", getRecommendedTuitions); 
 router.get("/:id", getTuitionById);
 router.post("/:id/apply", checkAuth,checkIsTeacher, applyToTuition);
-router.get("/recommended", getRecommendedTuitions); 
 
 
 export default router;

@@ -4,10 +4,10 @@ import Tuition from "../models/Tutions.js";
 
 
 export const createTuition = async (req, res) => {
-  const postedBy=req.user.id
+  const postedBy = req.user.id
   try {
     const {
- 
+
       guardianPosted,
       title,
       description,
@@ -38,17 +38,17 @@ export const createTuition = async (req, res) => {
       }
     }
 
- 
+
     if (scheduleProposals && scheduleProposals.length > 0) {
       scheduleProposals.forEach((proposal) => {
-        console.log(proposal,'this is propossal')
-        if (!proposal.role || !["student","guardian"].includes(proposal.role)) {
+        console.log(proposal, 'this is propossal')
+        if (!proposal.role || !["student", "guardian"].includes(proposal.role)) {
           throw new Error("Invalid role in schedule proposal");
         }
-       
+
         proposal.schedule.forEach((slot) => {
           if (slot.day === undefined || !slot.from || !slot.to) {
-            
+
             throw new Error("Invalid schedule slot");
           }
         });
@@ -66,7 +66,7 @@ export const createTuition = async (req, res) => {
       tuitionType,
       location,
       totalFee,
-      scheduleProposals:scheduleProposals.map((proposal) => ({
+      scheduleProposals: scheduleProposals.map((proposal) => ({
         ...proposal,
         proposedBy: postedBy,
       })),
@@ -108,36 +108,36 @@ export const getAvailableTuitions = async (req, res) => {
     const pipeline = [
       { $match: baseMatch },
 
-   
+
       {
         $match: {
           $and: [
             cityLower
-              ? { $expr: { $eq: [ { $toLower: "$location.city" }, cityLower ] } }
+              ? { $expr: { $eq: [{ $toLower: "$location.city" }, cityLower] } }
               : {},
             gradeLower
-              ? { $expr: { $eq: [ { $toLower: "$grade" }, gradeLower ] } }
+              ? { $expr: { $eq: [{ $toLower: "$grade" }, gradeLower] } }
               : {},
             typeLower
-              ? { $expr: { $eq: [ { $toLower: "$tuitionType" }, typeLower ] } }
+              ? { $expr: { $eq: [{ $toLower: "$tuitionType" }, typeLower] } }
               : {},
             subjectLower
-              ? { $expr: { $in: [ subjectLower, { $map: { input: "$subjects", as: "sub", in: { $toLower: "$$sub" } } } ] } }
+              ? { $expr: { $in: [subjectLower, { $map: { input: "$subjects", as: "sub", in: { $toLower: "$$sub" } } }] } }
               : {},
           ]
         }
       },
 
-    
+
       {
         $addFields: {
           alreadyApplied: userId
             ? {
-                $in: [
-                  new mongoose.Types.ObjectId(userId),
-                  "$applications.tutor"
-                ]
-              }
+              $in: [
+                new mongoose.Types.ObjectId(userId),
+                "$applications.tutor"
+              ]
+            }
             : false
         }
       },
@@ -190,6 +190,7 @@ export const getTuitionById = async (req, res) => {
       .populate("postedBy", "name email")
       .populate("guardianPosted", "name email")
       .populate("applications.tutor", "name email");
+  
 
     if (!tuition) {
       return res.status(404).json({ success: false, message: "Tuition not found" });
@@ -231,41 +232,76 @@ export const applyToTuition = async (req, res) => {
 
 export const getRecommendedTuitions = async (req, res) => {
   try {
+    console.log("Recommended Tuition API Called");
+
     const { page = 1, limit = 10, city, grade, subject, tuitionType } = req.query;
 
-
-    const pageNumber = parseInt(page);
-    const limitNumber = parseInt(limit);
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
 
     if (isNaN(pageNumber) || isNaN(limitNumber)) {
       return res.status(400).json({ success: false, message: "Invalid page or limit" });
     }
 
-    const filters = { isActive: true, status: "open" };
 
-    if (city) filters["location.city"] = new RegExp(`^${city}$`, "i"); 
-    if (grade) filters.grade = new RegExp(`^${grade}$`, "i");
-    if (subject) filters.subjects = new RegExp(`^${subject}$`, "i");
-    if (tuitionType) filters.tuitionType = new RegExp(`^${tuitionType}$`, "i");
+    const baseFilter = { isActive: true, status: "open" };
+G
+    const orConditions = [];
+
+    if (city) {
+      orConditions.push({
+        "location.city": { $regex: city, $options: "i" }  
+      });
+    }
+
+    if (grade) {
+      orConditions.push({
+        grade: { $regex: grade, $options: "i" }
+      });
+    }
+
+    if (subject) {
+      orConditions.push({
+        subject: { $regex: subject, $options: "i" }
+      });
+    }
+
+    if (tuitionType) {
+      orConditions.push({
+        tuitionType: { $regex: tuitionType, $options: "i" }
+      });
+    }
+
+
+    let finalQuery = { ...baseFilter };
+
+
+    if (orConditions.length > 0) {
+      finalQuery.$or = orConditions;
+    }
+
+  
 
     const skip = (pageNumber - 1) * limitNumber;
 
-    const tuitions = await Tuition.find(filters)
-      .sort({ createdAt: -1 }) 
+
+    const tuitions = await Tuition.find(finalQuery)
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNumber)
       .select("-applications -statusHistory -scheduleProposals -finalSchedule");
 
-    const total = await Tuition.countDocuments(filters);
+    const total = await Tuition.countDocuments(finalQuery);
 
     return res.status(200).json({
       success: true,
-      message: "Recommended tuitions fetched",
-      page: pageNumber,
-      totalPages: Math.ceil(total / limitNumber),
       total,
-      tuitions,
+      page: pageNumber,
+      limit: limitNumber,
+      count: tuitions.length,
+      data: tuitions,
     });
+
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: "Server Error" });
