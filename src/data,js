@@ -1,0 +1,59 @@
+const userIds = [
+  "693d5b6dc69f70f93518f8d0",
+  "693d5bebc69f70f93518f8d3",
+  "693d5c12c69f70f93518f8d7",
+  "693d5c29c69f70f93518f8db",
+  "693d5c43c69f70f93518f8df",
+  "693d5c59c69f70f93518f8e3",
+  "693d5c6dc69f70f93518f8e7",
+  "693d5c80c69f70f93518f8eb",
+  "693d5c93c69f70f93518f8ef",
+  "693d5ca6c69f70f93518f8f3",
+  "693d5cbcc69f70f93518f8f7"
+];
+
+const teacherIds = [
+  "693d5fe3c69f70f93518f8fb",
+  "693d5ff7c69f70f93518f8ff",
+  "693d6009c69f70f93518f903",
+  "693d6021c69f70f93518f907",
+  "693d6034c69f70f93518f90b",
+  '693e2887651957987b78403f',
+  '693e286a651957987b78403c',
+  '693e2850651957987b784039',
+  '693e283e651957987b784036',
+  '693e282a651957987b784033'
+];
+
+ const teacherSpecializations = [
+  {
+    name: "Science Teacher",
+    subjects: ["Physics", "Chemistry", "Biology", "Science", "Higher Mathematics"],
+    gradeLevels: ["Grade 9-10", "SSC", "HSC", "University"]
+  },
+  {
+    name: "Math Teacher",
+    subjects: ["Mathematics", "Calculus", "Statistics", "Higher Mathematics"],
+    gradeLevels: ["All Grades", "SSC", "HSC", "University"]
+  },
+  {
+    name: "Language Teacher",
+    subjects: ["English", "Bengali"],
+    gradeLevels: ["All Grades"]
+  },
+  {
+    name: "Computer Teacher",
+    subjects: ["ICT", "Programming", "Engineering"],
+    gradeLevels: ["Grade 6-8", "Grade 9-10", "SSC", "HSC", "University"]
+  },
+  {
+    name: "Commerce Teacher",
+    subjects: ["Accounting", "Economics", "Finance", "Business Studies"],
+    gradeLevels: ["Grade 9-10", "SSC", "HSC", "University"]
+  },
+  {
+    name: "Primary Teacher",
+    subjects: ["Mathematics", "English", "Science", "Bengali", "General Knowledge"],
+    gradeLevels: ["Grade 1-5", "Grade 6-8"]
+  }
+];

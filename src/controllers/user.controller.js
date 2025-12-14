@@ -127,3 +127,112 @@ export const uploadAvatarToCloudinary = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+export const getUserProfileById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+
+    const user = await User.findById(id)
+      .select('-password -__v -updatedAt')
+      
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+
+    const transformUserData = (userData) => {
+      const baseData = {
+        _id: userData._id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        avatarUrl: userData.avatarUrl,
+        phone: userData.phone,
+        createdAt: userData.createdAt,
+        profileCompletion: userData.profileCompletion,
+        status:userData.status
+      };
+
+     
+      switch (userData.role) {
+        case 'teacher':
+          if (userData.tutorProfile) {
+            baseData.tutorProfile = {
+              subjects: userData.tutorProfile.subjects || [],
+              hourlyRate: userData.tutorProfile.hourlyRate,
+              experienceYears: userData.tutorProfile.experienceYears,
+              bio: userData.tutorProfile.bio,
+              availability: userData.tutorProfile.availability || [],
+              rating: userData.tutorProfile.rating || 0,
+              totalReviews: userData.tutorProfile.totalReviews || 0,
+              qualifications: userData.tutorProfile.qualifications || [],
+              documents: userData.tutorProfile.documents || []
+            };
+          }
+          break;
+
+        case 'student':
+          if (userData.studentProfile) {
+            baseData.studentProfile = {
+              grade: userData.studentProfile.grade,
+              school: userData.studentProfile.school,
+              subjectsInterested: userData.studentProfile.subjectsInterested || [],
+              learningGoals: userData.studentProfile.learningGoals || []
+            };
+          }
+          break;
+
+        case 'guardian':
+          if (userData.guardianProfile) {
+            baseData.guardianProfile = {
+              occupation: userData.guardianProfile.occupation,
+              studentsUnderCare: userData.guardianProfile.studentsUnderCare?.length || 0
+            };
+          }
+          break;
+      }
+
+
+      if (userData.address) {
+        baseData.address = {
+          city: userData.address.city,
+          area: userData.address.area,
+          state: userData.address.state,
+          country: userData.address.country
+        };
+      }
+
+      return baseData;
+    };
+
+    const transformedUser = transformUserData(user);
+
+    res.status(200).json({
+      success: true,
+      data: transformedUser,
+      message: 'User retrieved successfully'
+    });
+    
+
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};

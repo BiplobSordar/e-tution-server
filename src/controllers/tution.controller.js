@@ -189,8 +189,12 @@ export const getTuitionById = async (req, res) => {
     const tuition = await Tuition.findById(id)
       .populate("postedBy", "name email")
       .populate("guardianPosted", "name email")
-      .populate("applications.tutor", "name email");
-  
+      .populate("applications.tutor", "name email")
+     
+    
+
+
+
 
     if (!tuition) {
       return res.status(404).json({ success: false, message: "Tuition not found" });
@@ -232,7 +236,7 @@ export const applyToTuition = async (req, res) => {
 
 export const getRecommendedTuitions = async (req, res) => {
   try {
-    console.log("Recommended Tuition API Called");
+    
 
     const { page = 1, limit = 10, city, grade, subject, tuitionType } = req.query;
 
@@ -245,12 +249,12 @@ export const getRecommendedTuitions = async (req, res) => {
 
 
     const baseFilter = { isActive: true, status: "open" };
-G
+    
     const orConditions = [];
 
     if (city) {
       orConditions.push({
-        "location.city": { $regex: city, $options: "i" }  
+        "location.city": { $regex: city, $options: "i" }
       });
     }
 
@@ -280,7 +284,7 @@ G
       finalQuery.$or = orConditions;
     }
 
-  
+
 
     const skip = (pageNumber - 1) * limitNumber;
 

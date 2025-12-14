@@ -24,12 +24,12 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
-app.use(express.json()); 
+app.use(express.json());
 app.use(express.json({ limit: "6mb" }));
-app.use(express.urlencoded({ extended: true })); 
-app.use(cookieParser()); 
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 if (process.env.NODE_ENV === "development") {
-  app.use(morgan("dev")); 
+  app.use(morgan("dev"));
 }
 
 
