@@ -5,12 +5,12 @@ import { checkAuth } from "../middlewares/auth.middleware.js";
 import { checkIsTeacher } from "../middlewares/checkIsTeacher.js";
 
 const router = express.Router();
-
+router.get("/:id", getTuitionById);
+router.post("/:id/apply", checkAuth, checkIsTeacher, applyToTuition);
 router.post("/create", checkAuth, checkStudent, createTuition);
 router.get("/", getAvailableTuitions);
-router.get("/recommended", getRecommendedTuitions); 
-router.get("/:id", getTuitionById);
-router.post("/:id/apply", checkAuth,checkIsTeacher, applyToTuition);
+router.get("/recommended", getRecommendedTuitions);
+
 
 
 export default router;
