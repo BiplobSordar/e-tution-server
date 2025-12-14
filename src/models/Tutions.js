@@ -53,7 +53,7 @@ const ScheduleProposalSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["student", "tutor"],
+    enum: ["student", "teacher"],
     required: true
   },
   schedule: [DaySlotSchema], 
