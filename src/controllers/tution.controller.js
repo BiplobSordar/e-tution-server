@@ -2,6 +2,7 @@
 import mongoose from "mongoose";
 import Tuition from "../models/Tutions.js";
 import User from "../models/User.js";
+import stripe from "../config/stripe.js";
 
 
 export const createTuition = async (req, res) => {
@@ -80,6 +81,38 @@ export const createTuition = async (req, res) => {
   } catch (error) {
     console.error("Error creating tuition:", error);
     res.status(500).json({ message: error.message || "Server error" });
+  }
+};
+
+
+export const getMyTuitions = async (req, res) => {
+
+  try {
+    const userId = req.user.id;
+    
+    const tuitions = await Tuition.find({
+      $or: [
+        { postedBy: userId },
+        { guardianPosted: userId }
+      ]
+    })
+    .populate('postedBy', 'name email')
+    .populate('guardianPosted', 'name email')
+    .populate('assignedTutor', 'name email')
+    .populate('applications.tutor', 'name email qualifications experience')
+    .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      count: tuitions.length,
+      tuitions
+    });
+  } catch (error) {
+    console.error('Error fetching tuitions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tuitions'
+    });
   }
 };
 
@@ -424,7 +457,7 @@ export const applyForTuition = async (req, res) => {
    
     const scheduleProposalData = {
       proposedBy: userId,
-      role: 'tutor',
+      role: 'teacher',
       schedule: scheduleProposal.schedule.map(slot => ({
         day: slot.day,
         subject: slot.subject || tuitionSubjects[0], 
@@ -601,5 +634,278 @@ export const getRecommendedTuitions = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+
+
+export const acceptTutorApplication = async (req, res) => {
+  const { tuitionId, tutorId } = req.params;
+  const userId = req.user.id;
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const tuition = await Tuition.findById(tuitionId).session(session);
+
+    if (!tuition) {
+      throw new Error("Tuition not found");
+    }
+
+
+    if (tuition.postedBy.toString() !== userId.toString()) {
+      throw new Error("Unauthorized");
+    }
+
+    if (tuition.assignedTutor) {
+      throw new Error("Tutor already assigned");
+    }
+
+    let found = false;
+
+    tuition.applications.forEach((app) => {
+      if (app.tutor.toString() === tutorId.toString()) {
+        app.status = "accepted";
+        found = true;
+      } else {
+        app.status = "rejected";
+      }
+    });
+
+    if (!found) {
+      throw new Error("Application not found");
+    }
+
+    tuition.assignedTutor = tutorId;
+    tuition.status = "assigned";
+
+    tuition.statusHistory.push({
+      status: "assigned",
+      changedBy: userId
+    });
+
+    await tuition.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({
+      success: true,
+      message: "Tutor accepted and assigned successfully"
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
+
+
+
+export const rejectTutorApplication = async (req, res) => {
+  const { tuitionId, tutorId } = req.body
+  console.log(tutorId,tutorId)
+  const userId = req.user.id;
+
+  try {
+    const tuition = await Tuition.findById(tuitionId);
+   
+
+    if (!tuition) {
+      return res.status(404).json({ message: "Tuition not found" });
+    }
+
+
+    if (tuition.postedBy.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    if (tuition.assignedTutor) {
+      return res.status(400).json({
+        message: "Cannot reject application after tutor is assigned"
+      });
+    }
+
+    const application = tuition.applications.find(
+      (app) => app.tutor.toString() === tutorId.toString()
+    );
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    if (application.status !== "pending") {
+      return res.status(400).json({
+        message: "Application already processed"
+      });
+    }
+
+    application.status = "rejected";
+
+    await tuition.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Application rejected successfully"
+    });
+
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
+export const createCheckoutSession = async (req, res) => {
+  const { tuitionId, tutorId } = req.body;
+  const studentId = req.user.id;
+
+
+
+  try {
+    const tuition = await Tuition.findById(tuitionId);
+
+    if (!tuition) {
+      return res.status(404).json({ success: false, message: "Tuition not found" });
+    }
+
+ 
+    if (tuition.postedBy.toString() !== studentId.toString()) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (tuition.paymentStatus === "paid") {
+      return res.status(400).json({ success: false, message: "Already paid" });
+    }
+
+  
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "bdt",
+            product_data: {
+              name: tuition.title,
+              description: `Tuition for grade ${tuition.grade} - Subjects: ${tuition.subjects.join(", ")}`,
+            },
+            unit_amount: tuition.totalFee * 100, 
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.FRONTEND_URL}/payment-success`,
+      cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
+      metadata: {
+        tuitionId: tuition._id.toString(),
+        tutorId: tutorId.toString(),
+        studentId: studentId.toString(),
+      },
+    });
+
+    res.status(200).json({ success: true, url: session.url });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Stripe session creation failed" });
+  }
+};
+
+export const stripeWebhook = async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body, 
+      sig,
+      endpointSecret
+    );
+  } catch (err) {
+    console.error(" Webhook signature verification failed:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+
+  if (event.type !== "checkout.session.completed") {
+    return res.status(200).json({ received: true });
+  }
+
+  const session = event.data.object;
+  const { tuitionId, tutorId } = session.metadata || {};
+
+  if (!tuitionId || !tutorId) {
+    return res.status(400).json({ message: "Missing metadata" });
+  }
+
+  const mongoSession = await mongoose.startSession();
+  mongoSession.startTransaction();
+
+  try {
+    const tuition = await Tuition.findById(tuitionId).session(mongoSession);
+    if (!tuition) throw new Error("Tuition not found");
+
+    if (tuition.paymentStatus === "paid") {
+      await mongoSession.commitTransaction();
+      mongoSession.endSession();
+      return res.status(200).json({ received: true });
+    }
+
+
+    let tutorFound = false;
+    tuition.applications.forEach(app => {
+      if (app.tutor.toString() === tutorId.toString()) {
+        app.status = "accepted";
+        tutorFound = true;
+      } else {
+        app.status = "rejected";
+      }
+    });
+
+    if (!tutorFound) {
+      throw new Error("Tutor application not found");
+    }
+
+
+    tuition.paymentStatus = "paid";
+    tuition.paymentIntentId = session.payment_intent;
+    tuition.paidAt = new Date();
+
+
+    tuition.assignedTutor = tutorId;
+
+
+    tuition.status = "in-progress";
+
+    tuition.statusHistory.push({
+      status: "in-progress",
+      changedBy: tuition.postedBy
+    });
+
+    await tuition.save({ session: mongoSession });
+
+    await mongoSession.commitTransaction();
+    mongoSession.endSession();
+
+    return res.status(200).json({ received: true });
+
+  } catch (error) {
+    await mongoSession.abortTransaction();
+    mongoSession.endSession();
+    console.error(" Webhook error:", error.message);
+    return res.status(500).json({ message: error.message });
   }
 };

@@ -38,8 +38,8 @@ const TuitionStatusHistorySchema = new mongoose.Schema({
 
 
 const DaySlotSchema = new mongoose.Schema({
-  day: { type: Number, min: 0, max: 6 }, 
-  subject: { type: String,  },
+  day: { type: Number, min: 0, max: 6 },
+  subject: { type: String, },
   from: { type: String, required: true },
   to: { type: String, required: true }
 }, { _id: false });
@@ -56,7 +56,7 @@ const ScheduleProposalSchema = new mongoose.Schema({
     enum: ["student", "teacher"],
     required: true
   },
-  schedule: [DaySlotSchema], 
+  schedule: [DaySlotSchema],
   proposedAt: {
     type: Date,
     default: Date.now
@@ -65,7 +65,7 @@ const ScheduleProposalSchema = new mongoose.Schema({
 
 
 const FinalScheduleSchema = new mongoose.Schema({
-  schedule: [DaySlotSchema] 
+  schedule: [DaySlotSchema]
 }, { _id: false });
 
 
@@ -96,7 +96,7 @@ const TuitionSchema = new mongoose.Schema({
     required: true
   },
 
-  
+
   tuitionType: {
     type: String,
     enum: ["online", "offline", "hybrid"],
@@ -109,8 +109,8 @@ const TuitionSchema = new mongoose.Schema({
   },
 
 
-  scheduleProposals: [ScheduleProposalSchema], 
-  finalSchedule: FinalScheduleSchema,         
+  scheduleProposals: [ScheduleProposalSchema],
+  finalSchedule: FinalScheduleSchema,
 
 
   totalFee: {
@@ -121,6 +121,12 @@ const TuitionSchema = new mongoose.Schema({
     type: String,
     enum: ["unpaid", "paid"],
     default: "unpaid"
+  },
+  paymentIntentId: {
+    type: String
+  },
+  paidAt: {
+    type: Date
   },
 
 
@@ -134,9 +140,8 @@ const TuitionSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
-      "open",        
-      "paid",       
-      "assigned",   
+      "open",
+      "assigned",
       "in-progress",
       "completed",
       "cancelled"

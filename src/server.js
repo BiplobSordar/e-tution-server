@@ -8,6 +8,9 @@ import authRoutes from './routes/authRoute.js';
 import usersRoutes from './routes/user.routes.js';
 import tutionsRoutes from './routes/tution.route.js';
 import teacherRoutes from './routes/teacher.route.js';
+import { stripeWebhook } from "./controllers/tution.controller.js";
+import Tutions from "./models/Tutions.js";
+import mongoose, { Mongoose } from "mongoose";
 
 dotenv.config();
 const app = express();
@@ -23,6 +26,11 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
+);
+app.post(
+  "/webhook",
+  express.raw({ type: "application/json" }), // important!
+  stripeWebhook
 );
 app.use(express.json());
 app.use(express.json({ limit: "6mb" }));
@@ -49,6 +57,9 @@ app.use((err, req, res, next) => {
     message: err.message || "Server Error",
   });
 });
+
+
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
