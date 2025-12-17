@@ -909,3 +909,48 @@ export const stripeWebhook = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+
+export const getPaidTuitionsWithPayment = async (req, res) => {
+
+  try {
+    const userId = req.user.id;
+
+
+    const paidTuitions = await Tuition.find({
+      postedBy: userId,
+      paymentStatus: "paid",
+      paymentIntentId: { $exists: true, $ne: null }
+    });
+
+    
+    const tuitionsWithPayment = await Promise.all(
+      paidTuitions.map(async (tuition) => {
+        const paymentIntent = await stripe.paymentIntents.retrieve(tuition.paymentIntentId);
+
+        return {
+          ...tuition.toObject(),
+          payment: {
+            id: paymentIntent.id,
+            amount: paymentIntent.amount,
+            currency: paymentIntent.currency,
+            status: paymentIntent.status,
+            receiptUrl: paymentIntent.charges?.data[0]?.receipt_url || null,
+            created: paymentIntent.created
+          }
+        };
+      })
+    );
+
+   
+    res.json({
+      success: true,
+      count: tuitionsWithPayment.length,
+      tuitions: tuitionsWithPayment
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
