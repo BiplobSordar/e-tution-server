@@ -145,13 +145,14 @@ const TuitionSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
+      "pending_approval",
       "open",
       "assigned",
       "in-progress",
       "completed",
       "cancelled"
     ],
-    default: "open"
+    default: "pending_approval"
   },
   statusHistory: [TuitionStatusHistorySchema],
 

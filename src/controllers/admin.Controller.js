@@ -184,6 +184,7 @@ export const approveTuition = async (req, res) => {
 
 
     tuition.status = "open";
+    tuition.adminApprovalStatus='approved'
     
  
     tuition.statusHistory.push({
@@ -239,6 +240,7 @@ export const rejectTuition = async (req, res) => {
 
  
     tuition.status = "cancelled";
+     tuition.adminApprovalStatus='rejected'
     
   
     tuition.statusHistory.push({

@@ -185,9 +185,13 @@ export const getAvailableTuitions = async (req, res) => {
           finalSchedule: 0,
         }
       },
+       {
+    $sort: { createdAt: -1 }
+  },
 
       { $skip: skip },
       { $limit: parseInt(limit) },
+      
     ];
 
     const tuitions = await Tuition.aggregate(pipeline);
@@ -208,6 +212,59 @@ export const getAvailableTuitions = async (req, res) => {
   }
 };
 
+
+export const deleteTuition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const tuition = await Tuition.findById(id);
+    if (!tuition) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tuition not found'
+      });
+    }
+
+
+    if (tuition.postedBy.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the tuition owner can delete this tuition'
+      });
+    }
+
+ 
+    if (tuition.assignedTutor) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete tuition that has an assigned tutor'
+      });
+    }
+
+    if (tuition.paymentStatus !== 'unpaid') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete tuition that has been paid44'
+      });
+    }
+
+
+    await Tuition.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Tuition deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete tuition error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete tuition',
+      error: error.message
+    });
+  }
+};
 
 
 
