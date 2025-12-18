@@ -135,6 +135,11 @@ const TuitionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
   },
+  adminApprovalStatus: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending"
+  },
 
 
   status: {

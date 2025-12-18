@@ -9,7 +9,9 @@ import authRoutes from "./routes/authRoute.js";
 import usersRoutes from "./routes/user.routes.js";
 import tutionsRoutes from "./routes/tution.route.js";
 import teacherRoutes from "./routes/teacher.route.js";
+import adminRoutes from "./routes/admin.Route.js";
 import { stripeWebhook } from "./controllers/tution.controller.js";
+import mongoose from "mongoose";
 
 dotenv.config();
 const app = express();
@@ -43,6 +45,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/tutions", tutionsRoutes);
 app.use("/api/teachers", teacherRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -51,6 +54,10 @@ app.use((err, req, res, next) => {
     message: err.message || "Server Error",
   });
 });
+
+
+
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
