@@ -1013,6 +1013,91 @@ export const getPaidTuitionsWithPayment = async (req, res) => {
 };
 
 
+export const updateTuition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    let updateData = req.body;
+
+    
+
+   
+    const tuition = await Tuition.findById(id);
+    if (!tuition) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Tuition not found' 
+      });
+    }
+
+
+    if (tuition.postedBy.toString() !== userId.toString()) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Not authorized' 
+      });
+    }
+
+
+    if (tuition.assignedTutor) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot edit tuition that has an assigned tutor'
+      });
+    }
+
+
+    if (tuition.paymentStatus !== 'unpaid') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot edit tuition with payment status: ${tuition.paymentStatus}. Only unpaid tuitions can be edited.`
+      });
+    }
+
+
+    updateData.updatedAt = Date.now();
+
+
+    const updatedTuition = await Tuition.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Tuition updated successfully',
+      data: updatedTuition
+    });
+    
+  } catch (error) {
+    console.error('Update error:', error);
+    
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid tuition ID'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 
 
 

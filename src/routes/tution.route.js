@@ -1,5 +1,5 @@
 import express from "express";
-import { createTuition, getAvailableTuitions, getMyTuitions, getTuitionById, deleteTuition,createCheckoutSession, stripeWebhook, getRecommendedTuitions, applyForTuition, getApplicationStatus, rejectTutorApplication, getPaidTuitionsWithPayment } from "../controllers/tution.controller.js";
+import { createTuition, getAvailableTuitions, getMyTuitions, getTuitionById, deleteTuition, createCheckoutSession, stripeWebhook, getRecommendedTuitions, applyForTuition, getApplicationStatus, rejectTutorApplication, getPaidTuitionsWithPayment, updateTuition } from "../controllers/tution.controller.js";
 import { checkStudent } from "../middlewares/checkStudent.js";
 import { checkAuth } from "../middlewares/auth.middleware.js";
 import { checkIsTeacher } from "../middlewares/checkIsTeacher.js";
@@ -17,7 +17,8 @@ router.post("/payments/create-checkout-session", checkAuth, createCheckoutSessio
 router.post("/reject-tution", checkAuth, checkStudent, rejectTutorApplication);
 router.post('/:tuitionId/apply', checkAuth, applyForTuition);
 router.get("/:id", getTuitionById);
-router.delete('/:id', checkAuth,checkStudent, deleteTuition);
+router.delete('/:id', checkAuth, checkStudent, deleteTuition);
+router.put('/:id', checkAuth, checkStudent, updateTuition);
 
 
 
